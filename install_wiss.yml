@@ -1,0 +1,83 @@
+---
+- name: Install and configure NVM, npm, Angular CLI, electron-packager, and .NET SDKs
+  hosts: all
+  tasks:
+    - include_vars: ../vars/main.yml
+
+    - name: Create NVM installation directory
+      ansible.windows.win_file:
+        path: 'D:\Install\nvm'
+        state: directory
+
+    - name: Download NVM setup executable
+      ansible.windows.win_get_url:
+        url: '{{ aft_url }}/NVM/1.1.11/nvm-setup.exe'
+        dest: 'D:\Install\nvm\nvm-setup.exe'
+        url_username: '{{ jfid }}'
+        url_password: '{{ jftoken }}'
+        validate_certs: false
+
+    - name: Install NVM for Windows
+      ansible.windows.win_package:
+        path: 'D:\Install\nvm\nvm-setup.exe'
+        state: present
+        arguments:
+          - /SP-
+          - /silent
+          - /noicons
+          - /log
+
+    - name: Install Angular CLI globally using npm
+      ansible.windows.win_command:
+        command: 'C:\Windows\System32\cmd.exe /c "C:\Program Files\nodejs\npm.cmd install -g @angular/cli@10.1.4"'
+        args:
+          creates: 'C:\Windows\System32\config\systemprofile\AppData\Roaming\npm\node_modules\@angular'
+
+    - name: Install electron-packager globally using npm
+      ansible.windows.win_command:
+        command: 'C:\Windows\System32\cmd.exe /c "C:\Program Files\nodejs\npm.cmd install electron-packager@13.0.1 -g"'
+        args:
+          creates: 'C:\Windows\System32\config\systemprofile\AppData\Roaming\npm\node_modules\electron-packager'
+
+    - name: Download .npmrc file
+      ansible.windows.win_get_url:
+        url: '{{ aft_url }}/NodeJS/.npmrc'
+        dest: 'C:\Users\win_scm\.npmrc'
+        url_username: '{{ jfid }}'
+        url_password: '{{ jftoken }}'
+        validate_certs: false
+
+    - name: Create .NET installation directory
+      ansible.windows.win_file:
+        path: 'C:\Install\dotnet'
+        state: directory
+
+    - name: Download .NET SDK 3.1 installer
+      ansible.windows.win_get_url:
+        url: '{{ aft_url }}/Microsoft/DotNet/3.1/dotnet-sdk-3.1.404-win-x64.exe'
+        dest: 'C:\Install\dotnet\dotnet-sdk-3.1.404-win-x64.exe'
+        url_username: '{{ jfid }}'
+        url_password: '{{ jftoken }}'
+        validate_certs: false
+
+    - name: Install .NET SDK 3.1
+      ansible.windows.win_package:
+        path: 'C:\Install\dotnet\dotnet-sdk-3.1.404-win-x64.exe'
+        state: present
+        arguments:
+          - /s
+
+    - name: Download .NET SDK 6.0 installer
+      ansible.windows.win_get_url:
+        url: '{{ aft_url }}/Microsoft/DotNet/6.0/dotnet-sdk-6.0.301-win-x64.exe'
+        dest: 'C:\Install\dotnet\dotnet-sdk-6.0.301-win-x64.exe'
+        url_username: '{{ jfid }}'
+        url_password: '{{ jftoken }}'
+        validate_certs: false
+
+    - name: Install .NET SDK 6.0
+      ansible.windows.win_package:
+        path: 'C:\Install\dotnet\dotnet-sdk-6.0.301-win-x64.exe'
+        state: present
+        arguments:
+          - /S

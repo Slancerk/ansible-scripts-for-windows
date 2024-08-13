@@ -1,0 +1,52 @@
+---
+- include_vars: ../vars/main.yml
+
+- name: Check Executable Folder Availability - IBM Tool Kit
+  ansible.windows.win_stat:
+    path: "{{ install_ibm_toolkit_6_0_6_1['executable_dir'] }}\\{{ install_ibm_toolkit_6_0_6_1['software_version_new'] }}"
+  register: ibm_tool_kit_software_check_exec
+
+- name: Check Executable Folder Availability - IBM Tool Kit
+  ansible.windows.win_stat:
+    path: "{{ install_ibm_toolkit_6_0_6_1['executable_dir_tool_kit'] }}"
+  register: ibm_tool_kit_version_check_exec
+
+- debug:
+    msg: "IBM Tool Kit is already installed. Skipping fresh installation.."
+  when: ibm_tool_kit_software_check_exec.stat.exists and ibm_tool_kit_version_check_exec.stat.exists
+
+- block:
+    - name: Create Installation Directory - IBM Tool Kit
+      ansible.windows.win_file:
+        path: "{{ install_ibm_toolkit_6_0_6_1['download_dir'] }}"
+        state: directory
+
+    - name: Remove Existing Binaries - IBM Tool Kit
+      ansible.windows.win_file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items:
+        - { path: "{{ install_ibm_toolkit_6_0_6_1['download_dir'] }}\\{{ install_ibm_toolkit_6_0_6_1['software_version_old'] }}.zip" }
+        - { path: "{{ install_ibm_toolkit_6_0_6_1['download_dir'] }}\\{{ install_ibm_toolkit_6_0_6_1['software_version_old_xml'] }}" }
+        - { path: "{{ install_ibm_toolkit_6_0_6_1['executable_dir'] }}\\{{ install_ibm_toolkit_6_0_6_1['software_version_old'] }}" }
+        - { path: "{{ install_ibm_toolkit_6_0_6_1['download_dir'] }}\\{{ install_ibm_toolkit_6_0_6_1['software_version_new'] }}.zip" }
+
+    - name: Download Package From Artifactory - IBM Tool Kit
+      ansible.windows.win_get_url:
+        url: "{{ item.art_file_path }}"
+        dest: "{{ install_ibm_toolkit_6_0_6_1['download_dir'] }}"
+        url_username: "{{ aft_usr }}"
+        url_password: "{{ aft_tok }}"
+        validate_certs: false
+      with_items:
+        - { art_file_path: "{{ aft_url }}/RTC/{{ install_ibm_toolkit_6_0_6_1['software_version_new'] }}.zip" }
+        - { art_file_path: "{{ aft_url }}/RTC/{{ install_ibm_toolkit_6_0_6_1['software_version_new_xml'] }}" }
+
+    - name: Install Package IBM Tool Kit
+      ansible.windows.win_command: "{{ item.win_command }}"
+      args:
+        chdir: "C:\\Program Files\\IBM\\Installation Manager\\eclipse"
+      with_items:
+        - { win_command: 'C:\\Windows\\System32\\cmd.exe /c "C:\\Install\\SCM\\7za.exe x {{ install_ibm_toolkit_6_0_6_1["download_dir"] }}\\{{ install_ibm_toolkit_6_0_6_1["software_version_new"] }}.zip -o{{ install_ibm_toolkit_6_0_6_1["executable_dir"] }}\\{{ install_ibm_toolkit_6_0_6_1["software_version_new"] }}"' }
+        - { win_command: 'C:\\Windows\\System32\\cmd.exe /c "IBMIM.exe -input {{ install_ibm_toolkit_6_0_6_1["download_dir"] }}\\{{ install_ibm_toolkit_6_0_6_1["software_version_new_xml"] }} -acceptLicense -silent -nosplash"' }
+  when: not ibm_tool_kit_software_check_exec.stat.exists and not ibm_tool_kit_version_check_exec.stat.exists

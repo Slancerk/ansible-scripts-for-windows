@@ -1,0 +1,26 @@
+---
+- name: Install WinDirStat on Windows
+  hosts: all
+  tasks:
+    - include_vars: ../vars/main.yml
+
+    - name: Create WinDirStat install directory
+      ansible.windows.win_file:
+        path: C:\Install\WinDirStat
+        state: directory
+
+    - name: Download WinDirStat installer
+      ansible.windows.win_get_url:
+        url: "{{ windirstat['source'] }}"
+        dest: C:\Install\WinDirStat\windirstat1_1_2_setup.exe
+        url_username: "{{ windirstat['username'] }}"
+        url_password: "{{ windirstat['password'] }}"
+        validate_certs: false
+
+    - name: Install WinDirStat
+      ansible.windows.win_package:
+        path: C:\Install\WinDirStat\windirstat1_1_2_setup.exe
+        arguments:
+          - /S
+          - /noUpdater
+        state: present

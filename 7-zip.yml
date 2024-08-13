@@ -1,0 +1,30 @@
+---
+- name: Install 7-Zip
+  hosts: all
+  become: yes
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Create Download and Executable Directory - 7-Zip
+      ansible.windows.win_file:
+        path: "{{ item.path }}"
+        state: directory
+      with_items:
+        - { path: "{{ install_7zip['download_dir'] }}" }
+        - { path: "{{ install_7zip['executable_dir'] }}" }
+
+    - name: Download Package From Artifactory - 7-Zip
+      ansible.windows.win_get_url:
+        url: "{{ aft_url }}/7zip/7z1900-x64.exe"
+        dest: "{{ install_7zip['download_dir'] }}\\7z1900-x64.exe"
+        url_username: "{{ aft_usr }}"
+        url_password: "{{ aft_tok }}"
+        validate_certs: false
+
+    - name: Install Package - 7-Zip
+      ansible.windows.win_package:
+        path: "{{ install_7zip['download_dir'] }}\\7z1900-x64.exe"
+        product_id: 7z1900-x64
+        arguments: /S
+        state: present

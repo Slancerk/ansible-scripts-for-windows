@@ -1,0 +1,43 @@
+---
+- name: Install IBM Installation Manager
+  hosts: all
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Check Executable Folder Availability - IBM Installation Manager
+      ansible.windows.win_stat:
+        path: "{{ install_ibm_im.executable_dir }}\\{{ install_ibm_im.software_version }}"
+      register: ibm_im_exec
+
+    - name: Debug message if IBM Installation Manager is already installed
+      ansible.builtin.debug:
+        msg: "IBM Installation Manager is already installed. Skipping fresh installation..!"
+      when: ibm_im_exec.stat.exists
+
+    - block:
+        - name: Create Download and Executable Directory - IBM Installation Manager
+          ansible.windows.win_file:
+            path: "{{ install_ibm_im.download_dir }}"
+            state: directory
+
+        - name: Download Package From Artifactory - IBM Installation Manager
+          ansible.windows.win_get_url:
+            url: "{{ aft_url }}/RTC/{{ install_ibm_im.software_version }}.zip"
+            dest: "{{ install_ibm_im.download_dir }}\\{{ install_ibm_im.software_version }}.zip"
+            url_username: "{{ aft_usr }}"
+            url_password: "{{ aft_tok }}"
+            validate_certs: false
+
+        - name: Extract Package - IBM Installation Manager
+          ansible.windows.win_command:
+            cmd: 'C:\\Windows\\System32\\cmd.exe /c "C:\\Install\\SCM\\7za.exe x {{ install_ibm_im.download_dir }}\\{{ install_ibm_im.software_version }}.zip -o{{ install_ibm_im.executable_dir }}\\{{ install_ibm_im.software_version }} -y"'
+          async: 5000
+          poll: 15
+
+        - name: Install package - IBM Installation Manager
+          ansible.windows.win_package:
+            path: "{{ install_ibm_im.executable_dir }}\\{{ install_ibm_im.software_version }}\\installc.exe"
+            arguments: '-acceptLicense'
+            state: present
+      when: not ibm_im_exec.stat.exists

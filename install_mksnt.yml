@@ -1,0 +1,29 @@
+---
+- name: Install mksnt
+  hosts: all
+  tasks:
+    - include_vars: ../vars/main.yml
+
+    - name: Create mksnt directory
+      ansible.windows.win_file:
+        path: C:\Install\mksnt
+        state: directory
+
+    - name: Download mksnt.zip from Artifactory
+      ansible.windows.win_get_url:
+        url: "{{ mksnt['source'] }}"
+        dest: C:\Install\mksnt\mksnt.zip
+        url_username: "{{ mksnt['username'] }}"
+        url_password: "{{ mksnt['password'] }}"
+        validate_certs: false
+
+    - name: Extract mksnt.zip
+      ansible.windows.win_command:
+        command: 'C:\Windows\System32\cmd.exe /c "C:\Install\SCM\7za.exe x C:\Install\mksnt\mksnt.zip -oC:\ -y"'
+      args:
+        creates: C:\mksnt
+      register: extract_mksnt
+
+    - name: Check extraction result
+      debug:
+        var: extract_mksnt

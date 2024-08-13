@@ -1,0 +1,35 @@
+--- 
+
+  - include_vars: ../vars/main.yml
+  
+  - name: Create Download Directory - GIT
+    ansible.windows.win_file:
+            path: "{{ install_Git['download_dir'] }}"
+            state: directory
+
+  - name: Download Package From Artifactory - Git 
+    ansible.windows.win_get_url:
+             url: "{{ aft_url}}/Git/Git-2.30.0.2-64-bit.exe" 
+             dest: "{{ install_python3['download_dir'] }}" 
+             url_username: "{{ aft_usr }}" 
+             url_password: "{{ aft_tok }}"
+             validate_certs: false
+
+
+  - name: Delete Existing Git Executables - Git
+    ansible.windows.win_file:
+             path: "{{item.path}}" 
+             state: absent
+    with_items:
+             - { path: "{{ install_git['download_dir'] }}\\Git-2.30.0-64-bit.exe" } 
+             - { path: "{{ install_git['download_dir'] }}\\Git-2.27.0-64-bit.exe" } 
+             - { path: "{{ install_git['download_dir'] }}\\Git-2.26.2-64-bit.exe" }
+
+
+  - name: Install Package - Git
+    ansible.windows.win_package:
+            path: '{{ install_git["download_dir"] }}\\Git-2.30.0.2-64-bit.exe' 
+            creates_path: '{{ install_git["executable_dir"] }}'
+            creates_version: 2.30.0.2
+            arguments: '/VERYSILENT'
+            state: present

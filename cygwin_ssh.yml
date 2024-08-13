@@ -1,0 +1,31 @@
+---
+- name: Install Cygwin with SSH
+  hosts: all
+  tasks:
+    - include_vars: ../vars/main.yml
+
+    - name: Create Cygwin install directory
+      ansible.windows.win_file:
+        path: C:\Install\cygwin
+        state: directory
+
+    - name: Download Cygwin zip
+      ansible.windows.win_get_url:
+        url: "{{ cygwin_ssh['source'] }}"
+        dest: C:\Install\cygwin\cygwin.zip
+        url_username: "{{ cygwin_ssh['username'] }}"
+        url_password: "{{ cygwin_ssh['password'] }}"
+        validate_certs: false
+
+    - name: Extract Cygwin (with ssh)
+      ansible.windows.win_command:
+        cmd: 'C:\Windows\System32\cmd.exe /c "C:\Install\SCM\7za.exe x C:\Install\cygwin\cygwin.zip -oC:\ -y"'
+      when: cygwin_path.stat.exists == False
+      register: cygwin_path
+      args:
+        removes: C:\cygwin
+
+    - name: Check if Cygwin directory exists
+      ansible.windows.win_stat:
+        path: C:\cygwin
+      register: cygwin_path

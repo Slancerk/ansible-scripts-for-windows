@@ -1,0 +1,68 @@
+---
+- name: Install Visual Studio 2010 SP1
+  hosts: windows
+  tasks:
+    - name: Include variables
+      include_vars: ../vars/main.yml
+
+    - name: Check if Visual Studio 2010 SP1 is already installed
+      ansible.windows.win_stat:
+        path: "{{ install_vs2010_SP1['base_dir'] }}\\Setup\\Setup.exe"
+      register: vs2010_SP1_exec
+
+    - name: Visual Studio 2010 SP1 is already installed. Skipping fresh installation..!
+      debug:
+        msg: "Visual Studio 2010 SP1 is already installed. Skipping fresh installation..!"
+      when: vs2010_SP1_exec.stat.exists
+
+    - block:
+        - name: Create Download Directory - Visual Studio 2010 SP1
+          ansible.windows.win_file:
+            path: "{{ install_vs2010_SP1['download_dir'] }}\\zip"
+            state: directory
+
+        - name: Download Package From Artifactory - Visual Studio 2010 SP1
+          ansible.windows.win_get_url:
+            url: "{{ aft_url }}/ce-tpt-puppet-virtual/Microsoft/VS2010/{{ install_vs2010_SP1['software_version'] }}.zip"
+            dest: "{{ install_vs2010_SP1['download_dir'] }}\\zip\\{{ install_vs2010_SP1['software_version'] }}.zip"
+            url_username: "{{ aft_usr }}"
+            url_password: "{{ aft_tok }}"
+            validate_certs: false
+
+        - name: Extract Package - Visual Studio 2010 SP1
+          ansible.windows.win_command:
+            command: 'C:\Windows\System32\cmd.exe /c "C:\Install\SCM\7za.exe x {{ install_vs2010_SP1['download_dir'] }}\\zip\\{{ install_vs2010_SP1['software_version'] }}.zip -o{{ install_vs2010_SP1['base_dir'] }} -y"'
+          async: 3000
+          poll: 15
+
+        - name: Debug directory contents after extraction
+          ansible.windows.win_command:
+            command: 'C:\Windows\System32\cmd.exe /c "dir /s {{ install_vs2010_SP1['base_dir'] }}"'
+          register: dir_output
+
+        - debug:
+            var: dir_output.stdout_lines
+
+        - name: Check if Setup.exe exists after extraction
+          ansible.windows.win_stat:
+            path: "{{ install_vs2010_SP1['base_dir'] }}\\Setup\\Setup.exe"
+          register: vs2010_SP1_setup
+
+        - name: Fail if Setup.exe does not exist
+          ansible.builtin.fail:
+            msg: "Setup.exe does not exist at the expected path: {{ install_vs2010_SP1['base_dir'] }}\\Setup\\Setup.exe"
+          when: not vs2010_SP1_setup.stat.exists
+
+        - name: Install Package - Visual Studio 2010 SP1
+          ansible.windows.win_package:
+            path: "{{ install_vs2010_SP1['base_dir'] }}\\Setup\\Setup.exe"
+            arguments:
+              - /q
+            state: present
+
+        - name: Reboot if Visual Studio 2010 SP1 was installed
+          ansible.windows.win_reboot:
+            when: vs2010_SP1_setup.stat.exists
+
+      when: not vs2010_SP1_exec.stat.exists
+      
