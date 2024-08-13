@@ -1,0 +1,66 @@
+---
+- name: Install Visual Studio 2010
+  hosts: windows
+  tasks:
+    - name: Include variables
+      include_vars: ../vars/main.yml
+
+    - name: Check if Visual Studio 2010 is already installed
+      ansible.windows.win_stat:
+        path: "{{ install_vs2010['base_dir'] }}\\Setup\\Setup.exe"
+      register: vs2010_exec
+
+    - name: Visual Studio 2010 is already installed. Skipping fresh installation..!
+      debug:
+        msg: "Visual Studio 2010 is already installed. Skipping fresh installation..!"
+      when: vs2010_exec.stat.exists
+
+    - block:
+        - name: Create Download Directory - Visual Studio 2010
+          ansible.windows.win_file:
+            path: "{{ install_vs2010['download_dir'] }}\\zip"
+            state: directory
+
+        - name: Ensure 7-Zip Directory Exists
+          ansible.windows.win_file:
+            path: C:\Install\SCM
+            state: directory
+
+        - name: Download 7-Zip Command Line Tool if Not Present
+          ansible.windows.win_get_url:
+            url: https://www.7-zip.org/a/7z1900-x64.exe
+            dest: C:\Install\SCM\7z1900-x64.exe
+          when: not vs2010_exec.stat.exists
+
+        - name: Extract 7-Zip Command Line Tool if Not Present
+          ansible.windows.win_command:
+            command: 'C:\Install\SCM\7z1900-x64.exe /S /D=C:\Install\SCM'
+          when: not vs2010_exec.stat.exists
+
+        - name: Download Package From Artifactory - Visual Studio 2010
+          ansible.windows.win_get_url:
+            url: "{{ aft_url }}/Microsoft/VS2010/VS.NET2010-DVD.zip"
+            dest: "{{ install_vs2010['download_dir'] }}\\zip\\VS.NET2010-DVD.zip"
+            url_username: "{{ aft_usr }}"
+            url_password: "{{ aft_tok }}"
+            validate_certs: false
+
+        - name: Extract Package - Visual Studio 2010
+          ansible.windows.win_command:
+            command: 'C:\Install\SCM\7za.exe x {{ install_vs2010["download_dir"] }}\\zip\\VS.NET2010-DVD.zip -oC:\Install -y'
+          async: 3000
+          poll: 15
+
+        - name: Install Package - Visual Studio 2010
+          ansible.windows.win_package:
+            path: 'C:\Install\VS.NET2010-DVD\Setup\Setup.exe'
+            arguments:
+              - /unattendfile
+              - 'C:\Install\VS.NET2010-DVD\Setup\vs_install.ini'
+            state: present
+
+        - name: Reboot if Visual Studio 2010 was installed
+          ansible.windows.win_reboot:
+            when: vs2010_exec.stat.exists == False
+
+      when: vs2010_exec.stat.exists == False

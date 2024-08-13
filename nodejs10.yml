@@ -1,0 +1,45 @@
+---
+- name: Install Node.js 10 and related packages
+  hosts: all
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Create Node.js installation directory
+      ansible.windows.win_file:
+        path: "{{ nodejs.download_dir }}"
+        state: directory
+
+    - name: Download Node.js MSI package
+      ansible.windows.win_get_url:
+        url: "{{ nodejs.package_url }}"
+        dest: "{{ nodejs.package_path }}"
+        checksum: "md5"
+
+    - name: Install Node.js
+      ansible.windows.win_package:
+        path: "{{ nodejs.package_path }}"
+        arguments: "{{ nodejs.install_options }}"
+        state: present
+
+    - name: Install Angular CLI globally
+      ansible.windows.win_command:
+        cmd: 'C:\Windows\System32\cmd.exe /c "C:\Program Files\nodejs\npm.cmd install -g @angular/cli"'
+      when: not angular_cli_installed.stat.exists
+      register: angular_cli_installed
+
+    - name: Check if Angular CLI is installed
+      ansible.windows.win_stat:
+        path: "{{ nodejs.npm_check_path }}"
+      register: angular_cli_installed
+
+    - name: Install Electron Packager globally
+      ansible.windows.win_command:
+        cmd: 'C:\Windows\System32\cmd.exe /c "C:\Program Files\nodejs\npm.cmd install electron-packager@13.0.1 -g"'
+      when: not electron_packager_installed.stat.exists
+      register: electron_packager_installed
+
+    - name: Check if Electron Packager is installed
+      ansible.windows.win_stat:
+        path: "{{ nodejs.electron_check_path }}"
+      register: electron_packager_installed

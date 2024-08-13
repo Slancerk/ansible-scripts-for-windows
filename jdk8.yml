@@ -1,0 +1,40 @@
+---
+- include_vars: ../vars/main.yml
+
+- name: Check Executable Folder Availability - JAVA JDK8
+  ansible.windows.win_stat:
+    path: "{{ install_swift_jdk8['executable_dir'] }}"
+  register: java_jdk8_exec
+
+- debug:
+    msg: "JAVA JDK8 is already installed. Skipping fresh installation..!"
+  when: java_jdk8_exec.stat.exists == True
+
+- block:
+    - name: Create Download Directory - JAVA JDK8
+      ansible.windows.win_file:
+        path: "{{ install_swift_jdk8['download_dir'] }}"
+        state: directory
+
+    - name: Download Package From Artifactory - JAVA JDK8
+      ansible.windows.win_get_url:
+        url: "{{ aft_url }}/Java/JDK/jdk1.8.0_111.zip"
+        dest: "{{ install_swift_jdk8['download_dir'] }}\\jdk1.8.0_111.zip"
+        url_username: "{{ aft_usr }}"
+        url_password: "{{ aft_tok }}"
+        validate_certs: false
+
+    - name: Install package - JAVA JDK8
+      ansible.windows.win_command: 'C:\\Windows\\System32\\cmd.exe /c "C:\\Install\\SCM\\7za.exe x {{ install_swift_jdk8["download_dir"] }}\\jdk1.8.0_111.zip -o{{ install_swift_jdk8["executable_dir"] }} -y"'
+      async: 3000
+      poll: 15
+
+    - name: Update Env Path - JAVA JDK8
+      ansible.windows.win_path:
+        name: PATH
+        elements:
+          - '{{ install_swift_jdk8["executable_dir"] }}\\include'
+          - '{{ install_swift_jdk8["executable_dir"] }}\\bin'
+          - '{{ install_swift_jdk8["executable_dir"] }}\\include\\win32'
+        state: present
+  when: java_jdk8_exec.stat.exists == False

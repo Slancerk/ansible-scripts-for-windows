@@ -1,0 +1,35 @@
+---
+- name: Install Microsoft Build of OpenJDK 11
+  hosts: all
+  tasks:
+    - include_vars: ../vars/main.yml
+
+    - name: Create Java install directory
+      ansible.windows.win_file:
+        path: C:\Install\Java
+        state: directory
+
+    - name: Download Microsoft JDK 11.0.17 MSI
+      ansible.windows.win_get_url:
+        url: "{{ java_jdk['source'] }}"
+        dest: C:\Install\Java\microsoft-jdk-11.0.17-windows-x64.msi
+        url_username: "{{ java_jdk['username'] }}"
+        url_password: "{{ java_jdk['password'] }}"
+        validate_certs: false
+
+    - name: Install Microsoft Build of OpenJDK with Hotspot 11.0.17+8 (x64)
+      ansible.windows.win_package:
+        path: C:\Install\Java\microsoft-jdk-11.0.17-windows-x64.msi
+        arguments: 
+          - /quiet
+          - ADDLOCAL=FeatureMain
+          - INSTALLDIR=C:\jdk-11.0.17.8-hotspot
+          - /log
+          - C:\Temp\ms_jdk-11.0.17.8-hotspot.log
+        state: present
+
+    - name: Remove old OpenJDK 11 directory
+      ansible.windows.win_file:
+        path: C:\jdk11.0.13.8
+        state: absent
+        recurse: true

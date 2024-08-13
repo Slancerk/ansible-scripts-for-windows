@@ -1,0 +1,47 @@
+---
+- name: Install JDK 8 and remove other versions
+  hosts: all
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Create Installation Directory for Java
+      ansible.windows.win_file:
+        path: 'C:\Install\Java'
+        state: directory
+
+    - name: Download JDK 8 Installer
+      ansible.windows.win_get_url:
+        url: "{{ jdk8_install_url }}"
+        dest: 'C:\Install\Java\jdk-8u181-windows-x64.exe'
+        url_username: "{{ jfid }}"
+        url_password: "{{ jftoken }}"
+        validate_certs: false
+
+    - name: Install JDK 8
+      ansible.windows.win_package:
+        path: 'C:\Install\Java\jdk-8u181-windows-x64.exe'
+        state: present
+        arguments:
+          - /s
+          - ADDLOCAL=ToolsFeature,SourceFeature,PublicjreFeature
+          - INSTALLDIR=C:\jdk1.8.0_181
+          - INSTALLDIRPUBJRE=C:\jdk1.8.0_181\jre1.8.0_181
+          - /L
+          - C:\Temp\jdk-8u181-windows-x64.log
+          - AUTO_UPDATE=Disable
+
+    - name: Remove Java 8 Update 231 (64-bit)
+      ansible.windows.win_package:
+        name: 'Java 8 Update 231 (64-bit)'
+        state: absent
+
+    - name: Remove Java SE Development Kit 8 Update 231 (64-bit)
+      ansible.windows.win_package:
+        name: 'Java SE Development Kit 8 Update 231 (64-bit)'
+        state: absent
+
+    - name: Remove Java(TM) SE Development Kit 17.0.5 (64-bit)
+      ansible.windows.win_package:
+        name: 'Java(TM) SE Development Kit 17.0.5 (64-bit)'
+        state: absent

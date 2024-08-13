@@ -1,0 +1,23 @@
+---
+- name: Install Node.js 12.20.1
+  hosts: all
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Create Node.js installation directory
+      ansible.windows.win_file:
+        path: "{{ nodejs.download_dir }}"
+        state: directory
+
+    - name: Download Node.js MSI package
+      ansible.windows.win_get_url:
+        url: "{{ nodejs.package_url }}"
+        dest: "{{ nodejs.package_path }}"
+        checksum: "md5"
+
+    - name: Install Node.js
+      ansible.windows.win_package:
+        path: "{{ nodejs.package_path }}"
+        arguments: "{{ nodejs.install_options }}"
+        state: present

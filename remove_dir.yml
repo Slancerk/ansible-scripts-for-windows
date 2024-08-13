@@ -1,0 +1,19 @@
+---
+- name: Remove directories for Visual Studio 2019
+  hosts: all
+  tasks:
+    - include_vars: ../vars/main.yml
+
+    - name: Remove VS2019 zip file
+      ansible.windows.win_file:
+        path: '{{ remove_vs2019["zip_path"] }}'
+        state: absent
+        recurse: true
+        force: true
+
+    - name: Remove extracted VS2019 directory
+      ansible.windows.win_file:
+        path: '{{ remove_vs2019["extracted_path"] }}'
+        state: absent
+        recurse: true
+        force: true

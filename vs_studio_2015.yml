@@ -1,0 +1,59 @@
+
+---
+  - include_vars: ../vars/main.yml
+  
+  - name: Check Executable Folder Availability - Visual Studio 2015 Professional
+    ansible.windows.win_stat:
+           path: "{{ install swift_vs2015prof['executable_dir'] }}\\{ install_swift_vs2015prof['software_edition'] }}" 
+    register: vs2015_exec
+  
+  - debug: msg="Visual Studio 2015 Professional is already installed. Skpping fresh installation..!" when: vs2015_exec.stat.exists
+
+  - block:
+
+       - name: Create Download and Executable Directory - Visual Studio 2015 Professional
+         ansible.windows.win_file:
+                path: "{{item.path}}"
+                state: directory
+        with_items:
+            - { path: "{{install_swift_vs2015prof['download_dir'] }}" }
+            - { path: "{{ install_swift_vs2015prof['executable_dir'] }}" }
+            - { path: "{{ install swift_vs2015prof['executable_temp_dir'] }}" }
+
+       - name: Download Package From Artifactory Visual Studio 2015 Professional
+         ansible.windows.win_get_url:
+               url: "{{item.art_file_path}}"
+               dest: "{{ install_swift_vs2015prof['download_dir'] }}"
+               url_username: "{{ aft_usr }}"
+               url_password: "{{ aft_tok }}" 
+               validate_certs: false
+        with items:
+             - { art_file_path: "{{ aft_url}}/Microsoft/VS2015/{{ install_swift_vs2015prof['software_edition'] }}.zip" } 
+             - {art_file_path: "{{ aft_url}}/Microsoft/VS2015/vs2015_adminfile.xml" }       
+        
+         - name: Copy Visual Studio Admin File to Executable Directory Visual Studio 2015 Professional 
+           ansible.windows.win_copy:
+               src: "{{ install_swift_vs 2015prof['download_dir'] }}\\vs2015_adminfile.xml"
+               dest: "{{ install swift vs 2015prof['executable dir'] }}"
+               remote_src: yes
+
+          - name: Extract Package - Visual Studio 2015 Professional
+            ansible.windows.win_command: 'C:\Windows\System32\cmd.exe /c "C:\Install\SCM\7za.exe x {{ install_swift_vs2015prof ["download_dir"] }}\\{{ install_swift_vs 2015prof["software_edition"] }}.zip -o {{ install_swift_vs2015prof["executable_dir"] }} -y"
+            async: 5000
+            poll: 15
+          
+          - name: Install Package - Visual Studio 2015 Professional 
+            ansible.windows.win_package:
+                  path: '{{ install_swift_vs2015prof["executable_dir"] }}\\{{ install_swift_vs2015prof["software_edition"] }}\\vs_professional.exe' 
+                  product_id: 14.0
+                  arguments:
+                         - /adminfile
+                         - {{'install_swift_vs2015prof["executable_dir"] }}\\vs2015_adminfile.xml'
+                         - /quiet
+                         - /noweb
+                         - /norestart
+                         - /passive
+                         - /L
+                         - C:\\Temp\\VS_2015_swift_install_log.txt
+                         state: present
+           when: vs2015_exec.stat.exists == False

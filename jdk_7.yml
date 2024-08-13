@@ -1,0 +1,32 @@
+---
+- name: Install JDK 7
+  hosts: all
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Create Installation Directory for JDK
+      ansible.windows.win_file:
+        path: C:\Install\Java
+        state: directory
+
+    - name: Download JDK 7 Installer
+      ansible.windows.win_get_url:
+        url: "{{ jdk7_install_url }}"
+        dest: 'C:\Install\Java\jdk-7u1-windows-x64.exe'
+        url_username: "{{ jfid }}"
+        url_password: "{{ jftoken }}"
+        validate_certs: false
+
+    - name: Install JDK 7
+      ansible.windows.win_package:
+        path: 'C:\Install\Java\jdk-7u1-windows-x64.exe'
+        state: present
+        arguments:
+          - /s
+          - ADDLOCAL=ToolsFeature,SourceFeature,PublicjreFeature
+          - INSTALLDIR=C:\jdk1.7.0_01
+          - INSTALLDIRPUBJRE=C:\jdk1.7.0_01\jre1.7.0_01
+          - /L
+          - C:\Temp\jdk-7u01-windows-x64.log
+          - AUTO_UPDATE=Disable

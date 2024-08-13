@@ -1,0 +1,72 @@
+---
+- name: Install Strawberry Perl and Perl Modules
+  hosts: localhost  # Adjust the host or group of hosts as per your inventory
+
+  vars_files:
+    - vars/main.yml  # Path to your variables file
+
+  tasks:
+    - name: Ensure Strawberry Perl installation directory exists
+      ansible.builtin.file:
+        path: "{{ strawberryperl_install_dir }}"
+        state: directory
+
+    - name: Download Strawberry Perl MSI
+      ansible.builtin.archive:
+        path: "{{ strawberryperl_install_dir }}/strawberry-perl-5.28.0.1-64bit.msi"
+        src: "{{ aft_url }}/Perl/strawberry-perl-5.28.0.1-64bit.msi"
+        allow_insecure: true
+        username: "{{ aft_usr }}"
+        password: "{{ aft_tok }}"
+        cleanup: false
+
+    - name: Install Strawberry Perl (64-bit)
+      ansible.builtin.package:
+        name: Strawberry Perl (64-bit)
+        state: installed
+        src: "{{ strawberryperl_install_dir }}/strawberry-perl-5.28.0.1-64bit.msi"
+        install_options:
+          - '/quiet'
+
+    - name: Download and install Perl modules
+      ansible.builtin.archive:
+        path: "{{ strawberryperl_modules_dir }}/{{ item }}/module.zip"
+        src: "{{ aft_url }}/Perl/Modules/{{ item }}.zip"
+        allow_insecure: true
+        username: "{{ aft_usr }}"
+        password: "{{ aft_tok }}"
+        cleanup: false
+      with_items: "{{ perl_modules }}"
+
+    - name: Extract Perl modules
+      ansible.builtin.command:
+        cmd: 'C:\\Windows\\System32\\cmd.exe /c C:\\Install\\SCM\\7za.exe x "{{ strawberryperl_modules_dir }}/{{ item }}/module.zip" -oC:\\Strawberry\\perl\\lib\\ -y'
+        timeout: 300
+        only_if: 'C:\\Windows\\System32\\cmd.exe /c if not exist C:\\Strawberry\\perl\\lib\\{{ item }} (exit 0) else (exit 1)'
+      with_items: "{{ perl_modules }}"
+
+    - name: Download MIME::Lite.pm module
+      ansible.builtin.archive:
+        path: 'C:\\Strawberry\\perl\\lib\\MIME\\Lite.pm'
+        src: "{{ aft_url }}/Perl/Modules/Lite.pm"
+        allow_insecure: true
+        username: "{{ aft_usr }}"
+        password: "{{ aft_tok }}"
+        cleanup: false
+
+    - name: Remove ActivePerl 5.22.1 (64-bit)
+      ansible.builtin.package:
+        name: ActivePerl 5.22.1 Build 2201 (64-bit)
+        state: absent
+
+    - name: Remove Perl installation directory
+      ansible.builtin.file:
+        path: 'C:\\Install\\Perl'
+        state: absent
+        force: true
+
+    - name: Remove Perl 64-bit directory
+      ansible.builtin.file:
+        path: 'C:\\Per164'
+        state: absent
+        force: true

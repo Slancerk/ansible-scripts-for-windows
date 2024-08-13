@@ -1,0 +1,37 @@
+---
+  - include_vars: ../vars/main.yml
+    
+  - name: Check Executable Folder Availability - Visual studio 2010 SP1
+    ansible.windows.win_stat:
+         path: "{{install_vs2010_SP1['base_dir'] }}\\{{ install_vs2010_SP1['software_version'] }}"
+    register: vs2010_SP1_exec
+
+  - debug: msg="Visual studio 2010 SP1 is already installed. Skipping fresh installation..!" 
+    when: vs2010_SP1_exec.stat.exists == True
+
+  - block:
+       - name: Create Download Directory - Visual studio 2010 SP1
+         ansible.windows.win_file: 
+            path: "{{ install_vs2010_SP1['download_dir'] }}\\zip"
+            state: directory
+
+       - name: Download Package From Artifactory - Visual studio 2010 SP1
+         ansible.windows.win_get_url:
+             url: "{{ aft_url}}/Microsoft/VS2010/{{ install_vs2010_SP1['software_version'] }}.zip" 
+             dest: "{{ install_vs2010['download_dir'] }}\\zip" 
+             url_username: "{{ aft_usr }}" 
+             url_password: "{{ aft_tok }}"
+             validate_certs: false
+
+       - name: Extract Package - Visual Studio 2010 SP1
+         ansible.windows.win_command: 'C:\Windows\System32\cmd.exe /c "C:\Install\SCM\7za.exe x {{ install_vs2010_SP1["download_dir"] }}\\zip\\{{ install_vs2010_SP1 ["software_version"] }}.zip -o{{ install_vs2010_SP1["base_dir"] }} -y"
+         async: 3000
+         poll: 15
+   
+       - name: Install Package - Visual Studio 2010 SP1
+         ansible.windows.win_package:
+             path: '{{ install_vs2010_SP1["base_dir"] }}\\{{ install_vs2010_SP1["software_version"] }}\\Setup\\Setup.exe' 
+             arguments:
+             - /q
+             state: present
+         when: vs2010_SP1_exec.stat.exists == False

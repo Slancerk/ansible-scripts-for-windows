@@ -1,0 +1,65 @@
+---
+- name: Install Strawberry Perl and Modules
+  hosts: windows
+  tasks:
+    - name: Include variables
+      include_vars: ../vars/main.yml
+
+    - name: Create Strawberry Perl download directory
+      ansible.windows.win_file:
+        path: "{{ install_paths.strawberry_perl_dir }}"
+        state: directory
+
+    - name: Download Strawberry Perl MSI from Artifactory
+      ansible.windows.win_get_url:
+        url: "{{ aft_url }}/ce-tpt-puppet-virtual/Perl/{{ install_paths.strawberry_perl_msi }}"
+        dest: "{{ install_paths.strawberry_perl_dir }}\\{{ install_paths.strawberry_perl_msi }}"
+        url_username: "{{ aft_usr }}"
+        url_password: "{{ aft_tok }}"
+        validate_certs: false
+
+    - name: Install Strawberry Perl (64-bit)
+      ansible.windows.win_package:
+        path: "{{ install_paths.strawberry_perl_dir }}\\{{ install_paths.strawberry_perl_msi }}"
+        arguments:
+          - /quiet
+        state: present
+
+    - name: Download and Extract Perl modules
+      block:
+        - name: Download Perl module {{ item }}
+          ansible.windows.win_get_url:
+            url: "{{ aft_url }}/ce-tpt-puppet-virtual/Perl/Modules/{{ item }}.zip"
+            dest: "{{ install_paths.strawberry_perl_dir }}\\{{ item }}.zip"
+            url_username: "{{ aft_usr }}"
+            url_password: "{{ aft_tok }}"
+            validate_certs: false
+          loop: "{{ perl_modules }}"
+
+        - name: Extract Perl module {{ item }}
+          ansible.windows.win_command:
+            command: 'C:\\Windows\\System32\\cmd.exe /c "{{ install_paths.scm_7za }} x {{ install_paths.strawberry_perl_dir }}\\{{ item }}.zip -o{{ install_paths.perl_lib_dir }} -y"'
+          loop: "{{ perl_modules }}"
+          register: extract_perl_module
+          # failed_when: extract_perl_module.rc != 0
+          async: 300
+          poll: 0
+    - name: Download MIME::Lite Perl module
+      ansible.windows.win_get_url:
+        url: "{{ aft_url }}/ce-tpt-puppet-virtual/Perl/Modules/Lite.pm"
+        dest: "{{ install_paths.mime_lite_pm }}"
+        url_username: "{{ aft_usr }}"
+        url_password: "{{ aft_tok }}"
+        validate_certs: false
+
+    - name: Remove ActivePerl 5.22.1 Build 2201 (64-bit)
+      ansible.windows.win_package:
+        name: "ActivePerl 5.22.1 Build 2201 (64-bit)"
+        state: absent
+
+    - name: Remove unnecessary directories
+      ansible.windows.win_file:
+        path: "{{ item }}"
+        state: absent
+        force: true
+      loop: "{{ install_paths.remove_paths }}"

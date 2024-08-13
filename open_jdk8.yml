@@ -1,0 +1,31 @@
+---
+- name: Install OpenJDK 8
+  hosts: all
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Create Installation Directory for Java
+      ansible.windows.win_file:
+        path: 'C:\Install\Java'
+        state: directory
+
+    - name: Download OpenJDK 8 Installer
+      ansible.windows.win_get_url:
+        url: "{{ openjdk8_install_url }}"
+        dest: 'C:\Install\java-1.8.0-openjdk-1.8.0.252-2.b09.redhat.windows.x86_64.msi'
+        url_username: "{{ jfid }}"
+        url_password: "{{ jftoken }}"
+        validate_certs: false
+
+    - name: Install OpenJDK 8
+      ansible.windows.win_package:
+        path: 'C:\Install\java-1.8.0-openjdk-1.8.0.252-2.b09.redhat.windows.x86_64.msi'
+        state: present
+        arguments:
+          - /quiet
+          - /norestart
+          - INSTALLDIR=C:\Openjdk-1.8.0.252-2
+          - /L
+          - C:\Temp\Openjdk-1.8.0.252-2_install.log
+          - AUTO_UPDATE=Disable

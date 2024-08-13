@@ -1,0 +1,42 @@
+---
+- name: Install Visual Studio 2022 LTS 1705 Professional
+  hosts: all
+  become: yes
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Create Download Directory - Visual Studio 2022 LTS 1705 Professional
+      ansible.windows.win_file:
+        path: "{{ install_swift_vs2022_lts_1705_prof['download_dir'] }}"
+        state: directory
+
+    - name: Download Package From Artifactory - Visual Studio 2022 LTS 1705 Professional
+      ansible.windows.win_get_url:
+        url: "{{ item.art_file_path }}"
+        dest: "{{ install_swift_vs2022_lts_1705_prof['download_dir'] }}"
+        url_username: "{{ aft_usr }}"
+        url_password: "{{ aft_tok }}"
+        validate_certs: false
+      with_items:
+        - { art_file_path: "{{ aft_url }}/Microsoft/VS2022/{{ install_swift_vs2022_lts_1705_prof['software_version'] }}.exe" }
+        - { art_file_path: "{{ aft_url }}/Microsoft/VS2022/swift_vs2022_17-0-5.vsconfig" }
+
+    - name: Install Package - Visual Studio 2022 LTS 1705 Professional
+      ansible.windows.win_package:
+        path: "{{ install_swift_vs2022_lts_1705_prof['download_dir'] }}\\{{ install_swift_vs2022_lts_1705_prof['software_version'] }}.exe"
+        arguments:
+          - --config
+          - "{{ install_swift_vs2022_lts_1705_prof['download_dir'] }}\\swift_vs2022_17-0-5.vsconfig"
+          - --installPath
+          - "{{ install_swift_vs2022_lts_1705_prof['executable_dir'] }}"
+          - --add
+          - Microsoft.VisualStudio.Workload.ManagedDesktop
+          - --includeOptional
+          - --quiet
+          - --norestart
+          - --wait
+        state: present
+
+    - name: Rename Executable Directory Folder Path - Visual Studio 2022 LTS 1705 Professional
+      ansible.windows.win_command: 'C:\\Windows\\System32\\cmd.exe /c rename "{{ install_swift_vs2022_lts_1705_prof["executable_dir"] }}\\Msbuild" MSBuild'

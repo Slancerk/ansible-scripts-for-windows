@@ -1,0 +1,42 @@
+---
+- name: Install Visual Studio 2015 Update 3
+  hosts: all
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Download VS2015 Update 3 ZIP
+      ansible.windows.win_get_url:
+        url: "{{ vs2015_u3_zip_url }}"
+        dest: 'C:\Install\zip\VS2015u3-DVD.zip'
+        url_username: "{{ jfid }}"
+        url_password: "{{ jftoken }}"
+        validate_certs: false
+
+    - name: Extract VS2015 Update 3 ZIP
+      ansible.windows.win_command:
+        command: 'C:\Install\SCM\7za.exe x C:\Install\zip\VS2015u3-DVD.zip -oC:\Install -y'
+        args:
+          creates: 'C:\Install\VS2015u3-DVD'
+
+    - name: Install Visual Studio Enterprise 2015 with Updates
+      ansible.windows.win_package:
+        path: 'C:\Install\VS2015u3-DVD\vs_enterprise.exe'
+        state: present
+        arguments:
+          - /AdminFile
+          - 'C:\Install\VS2015u3-DVD\WIN_VS2015_Install.xml'
+          - /L
+          - 'C:\Temp\VS_2015u3_install_log.txt'
+          - /ForceRestart
+          - /silent
+          - /Productkey
+          - '{{ product_key }}'
+      notify:
+        - Reboot After Install VS2015u3
+
+  handlers:
+    - name: Reboot After Install VS2015u3
+      ansible.windows.win_reboot:
+        msg: "Rebooting after Visual Studio 2015 Update 3 installation."
+        pre_reboot_delay: 15

@@ -1,0 +1,13 @@
+---
+- name: Update Windows Registry to Enable Long Paths
+  hosts: all
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Ensure LongPathsEnabled is set to 1
+      ansible.windows.win_regedit:
+        path: "{{ registry_key_path }}"
+        name: "{{ registry_value_name }}"
+        type: "{{ registry_value_type }}"
+        data: "{{ registry_value_data }}"
+        state: present

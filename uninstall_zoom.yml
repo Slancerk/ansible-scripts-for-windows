@@ -1,0 +1,13 @@
+---
+- name: Uninstall Zoom and Zoom Outlook Plugin on Windows
+  hosts: all
+  tasks:
+    - name: Uninstall Zoom
+      ansible.windows.win_package:
+        name: Zoom
+        state: absent
+
+    - name: Uninstall Zoom Outlook Plugin
+      ansible.windows.win_package:
+        name: 'Zoom Outlook Plugin'
+        state: absent

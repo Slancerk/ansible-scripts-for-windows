@@ -1,0 +1,42 @@
+replicas: 1
+elasticsearchHosts: "https://elasticsearch-master:9200"
+service:
+  type: NodePort
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/load-balancer-name: ${load_balancer_name}
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/ip-address-type: ipv4
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/success-codes: "200-302"
+    alb.ingress.kubernetes.io/target-type: instance
+    alb.ingress.kubernetes.io/group.name: "portal"
+    alb.ingress.kubernetes.io/certificate-arn: ${acm}
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30,load_balancing.algorithm.type=weighted_random,load_balancing.algorithm.anomaly_mitigation=on
+    alb.ingress.kubernetes.io/load-balancer-attributes: access_logs.s3.enabled=true,access_logs.s3.bucket=${log_bucket},access_logs.s3.prefix=${load_balancer_name},deletion_protection.enabled=false,load_balancing.cross_zone.enabled=true
+    alb.ingress.kubernetes.io/healthcheck-path: "/app/kibana"
+  hosts:
+    - host: ${host}
+      paths:
+        - path: /*
+kibanaConfig:
+  kibana.yml: |
+    server:
+      publicBaseUrl: "https://${host}"
+    xpack:
+      security.encryptionKey: "f9cbf8a2-5208-4ff7-a245-b9cebae4607c"
+      encryptedSavedObjects.encryptionKey: "f9cbf8a2-5208-4ff7-a245-b9cebae4607c"
+      reporting.encryptionKey: "a_new_random_generated_key"
+    elasticsearch:
+      hosts: "https://elasticsearch-master:9200"
+      ssl:
+        verificationMode: none  # Only for testing purposes; ensure proper SSL setup for production
+    ruleRegistry:
+      write:
+        enabled: true
+        timeout: 1800000  # Increase the timeout to 30 minutes

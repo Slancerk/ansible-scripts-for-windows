@@ -1,0 +1,35 @@
+---
+- include_vars: ../vars/main.yml
+
+- name: Create Download Directory - Python3
+  ansible.windows.win_file:
+    path: "{{ install_python3['download_dir'] }}"
+    state: directory
+
+- name: Download Package From Artifactory - Python3
+  ansible.windows.win_get_url:
+    url: "{{ aft_url }}/python/{{ install_python3['software_version'] }}.exe"
+    dest: "{{ install_python3['download_dir'] }}\\{{ install_python3['software_version'] }}.exe"
+    url_username: "{{ aft_usr }}"
+    url_password: "{{ aft_tok }}"
+    validate_certs: false
+
+- name: Install Package - Python3
+  ansible.windows.win_package:
+    path: "{{ install_python3['download_dir'] }}\\{{ install_python3['software_version'] }}.exe"
+    arguments:
+      - /quiet
+      - InstallAllUsers=1
+      - PrependPath=1
+      - Include_test=0
+      - /log
+      - C:\Temp\python_install_log.txt
+    state: present
+
+- name: Update Env Path Python3
+  ansible.windows.win_path:
+    name: PATH
+    elements:
+      - '{{ install_python3["executable_dir"] }}\\Scripts'
+      - '{{ install_python3["executable_dir"] }}'
+    state: present

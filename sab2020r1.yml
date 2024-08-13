@@ -1,0 +1,26 @@
+---
+- name: Install InstallShield 2021
+  hosts: all
+  become: yes
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Create Download Directory - InstallShield 2021
+      ansible.windows.win_file:
+        path: "{{ install_swift_sab2021r1['download_dir'] }}"
+        state: directory
+
+    - name: Download Package From Artifactory - InstallShield 2021
+      ansible.windows.win_get_url:
+        url: "{{ aft_url }}/InstallShield/InstallShield2021R1StandaloneBuild.exe"
+        dest: "{{ install_swift_sab2021r1['download_dir'] }}"
+        url_username: "{{ aft_usr }}"
+        url_password: "{{ aft_tok }}"
+        validate_certs: false
+
+    - name: Install Package - InstallShield 2021
+      ansible.windows.win_package:
+        path: "{{ install_swift_sab2021r1['download_dir'] }}\\InstallShield2021R1StandaloneBuild.exe"
+        arguments: "/s /v\"LICENSETYPE=1 ADDLOCAL=ALL /qn\""
+        state: present
